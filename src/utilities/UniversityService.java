@@ -154,11 +154,18 @@ public class UniversityService {
 
     // --- Enrollment Management ---
     public boolean enrollStudent(String studentId, String courseId) {
+        studentId = normalizeId(studentId);
+        courseId = normalizeId(courseId);
+
         Optional<Student> s_opt = model.findStudent(studentId);
         Optional<Course> c_opt = model.findCourse(courseId);
 
-        if (s_opt.isEmpty() || c_opt.isEmpty()) {
-            System.err.println("Error during enrollment: Invalid Student or Course ID");
+        if (s_opt.isEmpty()) {
+            System.err.println("Error during enrollment: Student not found (" + studentId + ")");
+            return false;
+        }
+        if (c_opt.isEmpty()) {
+            System.err.println("Error during enrollment: Course not found (" + courseId + ")");
             return false;
         }
 
@@ -192,11 +199,18 @@ public class UniversityService {
     }
 
     public boolean assignTeacher(String teacherId, String courseId) {
+        teacherId = normalizeId(teacherId);
+        courseId = normalizeId(courseId);
+
         Optional<Teacher> t_opt = model.findTeacher(teacherId);
         Optional<Course> c_opt = model.findCourse(courseId);
 
-        if (t_opt.isEmpty() || c_opt.isEmpty()) {
-            System.err.println("Error: Invalid Teacher or Course ID.");
+        if (t_opt.isEmpty()) {
+            System.err.println("Error: Teacher not found (" + teacherId + ")");
+            return false;
+        }
+        if (c_opt.isEmpty()) {
+            System.err.println("Error: Course not found (" + courseId + ")");
             return false;
         }
 
@@ -227,6 +241,22 @@ public class UniversityService {
         }
     }
 
+    // Normalize user-provided IDs: trim, and strip anything after a space or '['
+    private String normalizeId(String id) {
+        if (id == null) return null;
+        id = id.trim();
+        // If user copied the printed line like "333 [COMPUTER_SCIENCE]", strip the bracket part
+        int bracket = id.indexOf('[');
+        if (bracket >= 0) {
+            id = id.substring(0, bracket).trim();
+        }
+        // If there's extra descriptive text after a space, take first token
+        int sp = id.indexOf(' ');
+        if (sp > 0) {
+            id = id.substring(0, sp).trim();
+        }
+        return id;
+    }
     // --- Utilities ---
     public void loadDemoData() {
         if (!model.getStudents().isEmpty()) {
