@@ -64,112 +64,119 @@ javac -d bin $(find src -name '*.java')
 
   Please follow small, focused commits and include a clear description of the problem your change addresses.
 
-  ## Building a runnable JAR
+   # University Management System (UMS)
 
-  To create a single runnable JAR (simple approach using the JDK):
+   A Java-based CLI application for managing students, teachers, courses and enrollments.
 
-  ```bash
-  mkdir -p out
-  javac -d out $(find src -name '*.java')
-  jar --create --file ums.jar -C out .
-  ```
+   This repository now supports two persistence modes:
 
-  Then run:
+   - SQL mode (recommended): uses SQLite via the `sqlite-jdbc` driver.
+   - File fallback mode: plain CSV files in `./data/` (used only if SQLite driver is missing).
 
-  ```bash
-  java -cp "ums.jar:sqlite-jdbc-3.40.0.0.jar" main.Main
-  ```
+   Important: when the SQLite JDBC driver is available on the classpath the app uses `ums.db` and SQL mode; otherwise it falls back to CSV files so data is not lost completely.
 
-  If you don't need persistence, omit the JDBC jar from the classpath.
+   ## Contents
 
-  ## Troubleshooting
+   ```
+   UMS/
+   ├── src/                      # Java source files
+   ├── data/                     # (created automatically when using file fallback)
+   │   ├── students.csv
+   │   ├── teachers.csv
+   │   ├── courses.csv
+   │   └── enrollments.csv
+   ├── target/                   # Maven build output
+   └── pom.xml                   # Maven build + dependency declaration (sqlite-jdbc)
+   ```
 
-  1. "No suitable driver found for jdbc:sqlite:ums.db"
+   ## Quick Start
 
-    This means the SQLite JDBC driver is not on the classpath. Download a suitable sqlite-jdbc JAR and run the application with it on the classpath, for example:
+   Using Maven (recommended — gets the SQLite driver automatically):
 
-    ```bash
-    java -cp "bin:sqlite-jdbc-3.40.0.0.jar" main.Main
-    ```
+   ```bash
+   # compile and run (exec plugin will run main.Main)
+   mvn -DskipTests=true compile exec:java
+   ```
 
-    Alternatively, the project contains a runtime fallback: when a JDBC driver is not found the application will continue in an in-memory mode but persistence (saving to `ums.db`) will be disabled. To enable persistence, add the JDBC driver to the classpath.
+   If you prefer to compile and run manually without Maven:
 
-  2. "Compiled by a more recent version of the Java Runtime"
+   ```bash
+   # compile
+   mkdir -p bin
+   javac -d bin $(find src -name "*.java")
 
-    Recompile using `--release 17` or run with a matching JDK/JRE. Example compile targeting Java 17:
+   # run WITHOUT persistence (in-memory / file fallback depending on driver)
+   java -cp bin main.Main
 
-    ```bash
-    javac --release 17 -d bin $(find src -name '*.java')
-    ```
+   # run WITH SQLite persistence (add JDBC driver JAR to classpath)
+   java -cp "bin:lib/sqlite-jdbc.jar" main.Main
+   ```
 
-  3. Database file permissions
+   Using the packaged Maven setup is easiest because `pom.xml` declares `org.xerial:sqlite-jdbc` and the exec plugin runs the app with dependencies present.
 
-    If you see permission errors writing `ums.db`, ensure the running user has write permissions in the working directory or run the program from a directory where it can create files.
+   ## Persistence Modes
 
-  ## Tests and Validation
+   - **SQL mode**: When the SQLite driver is available, the app will print:
 
-  There are no automated unit tests included yet. To validate manually, run the program and use the "Load Demo Data" menu option, or exercise the CLI flows (add students, courses, assign teachers, enroll students) and verify the output.
+     `[DB] Database connection established successfully.`
 
-  ## Notes & Next Steps
+     and use a file `ums.db` in the working directory. All mutations are persisted to the database.
 
-  - Add automated unit tests (JUnit) for `UniversityService` business logic.
-  - Add a build tool (Maven/Gradle) for dependency and packaging management.
-  - Add integration tests that exercise DB persistence with the SQLite JDBC driver.
+   - **File fallback (CSV)**: If the driver is not found you'll see:
 
-  ## Contact
+     `[DB Warning] Falling back to file-based persistence in './data' directory.`
 
-  If you have questions or want to collaborate, create an issue in the repository or reach out via the GitHub profile at `https://github.com/aminul01-g`.
-2. Run the application:
-```bash
-java -cp bin main.Main
-```
+     The app then creates `data/students.csv`, `data/teachers.csv`, `data/courses.csv`, and `data/enrollments.csv` and writes changes there.
 
-### Database Support
+   Notes
+   -----
 
-The system can operate in two modes:
-- **In-Memory Mode**: No external dependencies required
-- **Persistent Mode**: Requires SQLite JDBC driver (optional)
+   - The application will always try SQL first and then fall back to files — this prevents data loss when the JDBC driver is missing.
+   - CLI messages now only show success when the operation actually completed (e.g., `enrollStudent` returns success boolean).
 
-To enable database persistence:
-1. Download the SQLite JDBC driver (e.g., `sqlite-jdbc-3.40.0.0.jar`)
-2. Add it to the classpath when running:
-```bash
-java -cp "bin:sqlite-jdbc-3.40.0.0.jar" main.Main
-```
+   ## Enabling full SQL persistence (detailed)
 
-## Usage Examples
+   1. Use Maven (recommended):
 
-1. Add a new student:
-```
-=== Student Operations ===
-1. Add New Student
-Enter Student ID: S103
-Enter Student Name: John Doe
-Enter Major: Computer Science
-```
+      ```bash
+      mvn -DskipTests=true compile exec:java
+      ```
 
-2. Create a new course:
-```
-=== Course Operations ===
-1. Add New Course
-Enter Course ID: CS102
-Enter Course Name: Data Structures
-Enter Department: COMPUTER_SCIENCE
-```
+      The `exec:java` run uses the dependencies declared in `pom.xml`, including `sqlite-jdbc`.
 
-3. Enroll students in courses:
-```
-=== Student Operations ===
-2. Enroll Student in Course
-Enter Student ID: S103
-Enter Course ID: CS102
-```
+   2. Or add the JDBC JAR manually and run the program with it on the classpath:
 
-## Technical Details
+      ```bash
+      mkdir -p lib
+      wget -O lib/sqlite-jdbc.jar https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.42.0.0/sqlite-jdbc-3.42.0.0.jar
+      java -cp "bin:lib/sqlite-jdbc.jar" main.Main
+      ```
 
-- Written in Java
-- Command Line Interface (CLI)
-- Modular architecture (MVC-like pattern)
-- Support for SQLite persistence
-- Exception handling and input validation
-- Automatic database schema creation
+   ## CSV → DB Migration helper
+
+   If you've already used the CSV fallback and now want to import CSV records into `ums.db`, I can add a one-shot migration utility that:
+
+   - Reads `data/*.csv` and inserts rows into the corresponding SQL tables (`STUDENTS`, `TEACHERS`, `COURSES`, `ENROLLMENTS`).
+   - Optionally backs up the CSVs before importing.
+
+   If you want this, tell me and I will implement the migration command (or add a small class `utilities/MigrateCsvToDb.java`).
+
+   ## Troubleshooting
+
+   - "No suitable driver found for jdbc:sqlite:ums.db": add SQLite JDBC to the classpath or run via Maven as shown above.
+   - File permissions: ensure the process can create/write `ums.db` and files under `./data/`.
+   - Wrong Java version: compile with matching `--release` or run with the correct JDK.
+
+   ## Development notes & next steps
+
+   - Add the optional CSV → DB migration tool (I can add it).
+   - Add unit tests (JUnit) for `UniversityService` and `DatabaseService`.
+   - Consider switching CSV fallback to JSON for more robust data representation.
+
+   ## Contributing
+
+   Fork, create a branch, implement, and open a PR. For dependency-managed builds prefer Maven (`pom.xml` is included).
+
+   ## Contact
+
+   Open issues or PRs at `https://github.com/aminul01-g/University-Management-System`.
