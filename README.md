@@ -30,33 +30,95 @@ A Java-based command-line application for managing university resources includin
   - Arts and Humanities
   - Physics
 
-## Project Structure
 
 ```
 UMS/
 ├── src/
 │   ├── main/
-│   │   └── Main.java           # Entry point and CLI interface
 │   ├── courses/
 │   │   └── Course.java         # Course management
 │   ├── people/
 │   │   ├── Student.java        # Student entity
 │   │   └── Teacher.java        # Teacher entity
-│   └── utilities/
 │       ├── DatabaseService.java # Database operations
 │       ├── DataModel.java      # In-memory data storage
 │       └── UniversityService.java # Business logic
 └── bin/                        # Compiled classes
 ```
 
-## Setup and Running
 
 1. Compile the project:
 ```bash
 mkdir -p bin
 javac -d bin $(find src -name '*.java')
 ```
+  ## Contributing
 
+  Contributions are welcome. If you'd like to add a feature, fix a bug, or improve documentation:
+
+  - Fork the repository
+  - Create a feature branch: `git checkout -b feat/your-feature`
+  - Make your changes and add tests where appropriate
+  - Commit and push: `git commit -am "feat: summary" && git push origin feat/your-feature`
+  - Open a Pull Request and describe your changes
+
+  Please follow small, focused commits and include a clear description of the problem your change addresses.
+
+  ## Building a runnable JAR
+
+  To create a single runnable JAR (simple approach using the JDK):
+
+  ```bash
+  mkdir -p out
+  javac -d out $(find src -name '*.java')
+  jar --create --file ums.jar -C out .
+  ```
+
+  Then run:
+
+  ```bash
+  java -cp "ums.jar:sqlite-jdbc-3.40.0.0.jar" main.Main
+  ```
+
+  If you don't need persistence, omit the JDBC jar from the classpath.
+
+  ## Troubleshooting
+
+  1. "No suitable driver found for jdbc:sqlite:ums.db"
+
+    This means the SQLite JDBC driver is not on the classpath. Download a suitable sqlite-jdbc JAR and run the application with it on the classpath, for example:
+
+    ```bash
+    java -cp "bin:sqlite-jdbc-3.40.0.0.jar" main.Main
+    ```
+
+    Alternatively, the project contains a runtime fallback: when a JDBC driver is not found the application will continue in an in-memory mode but persistence (saving to `ums.db`) will be disabled. To enable persistence, add the JDBC driver to the classpath.
+
+  2. "Compiled by a more recent version of the Java Runtime"
+
+    Recompile using `--release 17` or run with a matching JDK/JRE. Example compile targeting Java 17:
+
+    ```bash
+    javac --release 17 -d bin $(find src -name '*.java')
+    ```
+
+  3. Database file permissions
+
+    If you see permission errors writing `ums.db`, ensure the running user has write permissions in the working directory or run the program from a directory where it can create files.
+
+  ## Tests and Validation
+
+  There are no automated unit tests included yet. To validate manually, run the program and use the "Load Demo Data" menu option, or exercise the CLI flows (add students, courses, assign teachers, enroll students) and verify the output.
+
+  ## Notes & Next Steps
+
+  - Add automated unit tests (JUnit) for `UniversityService` business logic.
+  - Add a build tool (Maven/Gradle) for dependency and packaging management.
+  - Add integration tests that exercise DB persistence with the SQLite JDBC driver.
+
+  ## Contact
+
+  If you have questions or want to collaborate, create an issue in the repository or reach out via the GitHub profile at `https://github.com/aminul01-g`.
 2. Run the application:
 ```bash
 java -cp bin main.Main
