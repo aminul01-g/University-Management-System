@@ -59,25 +59,28 @@ public class UniversityService {
         }
     }
 
-    public void addStudent(String id, String name, String major) {
+    public boolean addStudent(String id, String name, String major) {
         try {
             validateStudent(id, name, major);
             if (model.findStudent(id).isPresent()) {
-                throw new IllegalArgumentException("Student ID " + id + " already exists.");
+                System.err.println("Error adding student: Student ID " + id + " already exists.");
+                return false;
             }
             Student s = new Student(id, name, major);
             // Persist first, then update in-memory model to avoid inconsistencies
             dbService.insertStudent(s);
             model.getStudents().add(s);
             System.out.println("Student added: " + name);
+            return true;
         } catch (Exception e) {
             System.err.println("Error adding student: " + e.getMessage());
+            return false;
         }
     }
     
     // Overloaded method
-    public void addStudent(String id, String name) {
-        this.addStudent(id, name, "Undeclared");
+    public boolean addStudent(String id, String name) {
+        return this.addStudent(id, name, "Undeclared");
     }
 
     public void removeStudent(String id) {
@@ -102,18 +105,20 @@ public class UniversityService {
     }
 
     // --- Teacher Management ---
-    public void addTeacher(String id, String name, Department dept, String subject) {
+    public boolean addTeacher(String id, String name, Department dept, String subject) {
         if (model.findTeacher(id).isPresent()) {
             System.err.println("Error: Teacher ID " + id + " already exists.");
-            return;
+            return false;
         }
         Teacher t = new Teacher(id, name, dept, subject);
         try {
             dbService.insertTeacher(t);
             model.getTeachers().add(t);
             System.out.println("Teacher added: " + name);
+            return true;
         } catch (Exception e) {
             System.err.println("Error adding teacher: " + e.getMessage());
+            return false;
         }
     }
 
@@ -124,18 +129,20 @@ public class UniversityService {
     }
 
     // --- Course Management ---
-    public void addCourse(String id, String name, Department dept) {
+    public boolean addCourse(String id, String name, Department dept) {
         if (model.findCourse(id).isPresent()) {
             System.err.println("Error: Course ID " + id + " already exists.");
-            return;
+            return false;
         }
         Course c = new Course(id, name, dept);
         try {
             dbService.insertCourse(c);
             model.getCourses().add(c);
             System.out.println("Course added: " + name);
+            return true;
         } catch (Exception e) {
             System.err.println("Error adding course: " + e.getMessage());
+            return false;
         }
     }
 
@@ -146,50 +153,51 @@ public class UniversityService {
     }
 
     // --- Enrollment Management ---
-    public void enrollStudent(String studentId, String courseId) {
+    public boolean enrollStudent(String studentId, String courseId) {
+        Optional<Student> s_opt = model.findStudent(studentId);
+        Optional<Course> c_opt = model.findCourse(courseId);
+
+        if (s_opt.isEmpty() || c_opt.isEmpty()) {
+            System.err.println("Error during enrollment: Invalid Student or Course ID");
+            return false;
+        }
+
+        Student student = s_opt.get();
+        Course course = c_opt.get();
+
+        if (course.getEnrolledStudentIds().size() >= MAX_COURSE_CAPACITY) {
+            System.err.println("Error during enrollment: Course has reached maximum capacity");
+            return false;
+        }
+
+        if (student.isEnrolledIn(courseId)) {
+            System.err.println("Error during enrollment: Student already enrolled in this course");
+            return false;
+        }
+
+        // Transaction-like operation
         try {
-            Optional<Student> s_opt = model.findStudent(studentId);
-            Optional<Course> c_opt = model.findCourse(courseId);
-
-            if (s_opt.isEmpty() || c_opt.isEmpty()) {
-                throw new IllegalArgumentException("Invalid Student or Course ID");
-            }
-            
-            Student student = s_opt.get();
-            Course course = c_opt.get();
-
-            if (course.getEnrolledStudentIds().size() >= MAX_COURSE_CAPACITY) {
-                throw new IllegalStateException("Course has reached maximum capacity");
-            }
-
-            if (student.isEnrolledIn(courseId)) {
-                throw new IllegalStateException("Student already enrolled in this course");
-            }
-
-            // Transaction-like operation
-            try {
-                student.enroll(courseId);
-                course.addStudent(studentId);
-                dbService.insertEnrollment(studentId, courseId);
-                System.out.println("Student " + student.getName() + " enrolled in " + course.getCourseName());
-            } catch (Exception e) {
-                // Rollback memory changes if database operation fails
-                student.unenroll(courseId);
-                course.removeStudent(studentId);
-                throw e;
-            }
+            student.enroll(courseId);
+            course.addStudent(studentId);
+            dbService.insertEnrollment(studentId, courseId);
+            System.out.println("Student " + student.getName() + " enrolled in " + course.getCourseName());
+            return true;
         } catch (Exception e) {
+            // Rollback memory changes if database operation fails
+            student.unenroll(courseId);
+            course.removeStudent(studentId);
             System.err.println("Error during enrollment: " + e.getMessage());
+            return false;
         }
     }
 
-    public void assignTeacher(String teacherId, String courseId) {
+    public boolean assignTeacher(String teacherId, String courseId) {
         Optional<Teacher> t_opt = model.findTeacher(teacherId);
         Optional<Course> c_opt = model.findCourse(courseId);
 
         if (t_opt.isEmpty() || c_opt.isEmpty()) {
             System.err.println("Error: Invalid Teacher or Course ID.");
-            return;
+            return false;
         }
 
         Teacher teacher = t_opt.get();
@@ -200,8 +208,10 @@ public class UniversityService {
             // Update in-memory model only if DB update succeeded
             course.assignTeacher(teacherId);
             System.out.println("Teacher " + teacher.getName() + " assigned to " + course.getCourseName());
+            return true;
         } catch (Exception e) {
             System.err.println("Error assigning teacher: " + e.getMessage());
+            return false;
         }
     }
     

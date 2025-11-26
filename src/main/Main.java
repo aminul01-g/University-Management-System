@@ -106,8 +106,8 @@ public class Main {
                         String name = scanner.nextLine().trim();
                         System.out.print("Enter Major: ");
                         String major = scanner.nextLine().trim();
-                        service.addStudent(id, name, major);
-                        System.out.println("Student added successfully!");
+                        boolean added = service.addStudent(id, name, major);
+                        if (added) System.out.println("Student added successfully!");
                         break;
                     case 2:
                         System.out.print("Enter Student ID: ");
@@ -117,8 +117,8 @@ public class Main {
                         System.out.print("\nEnter Course ID (or 0 to cancel): ");
                         String courseId = scanner.nextLine().trim();
                         if (!courseId.equals("0")) {
-                            service.enrollStudent(studentId, courseId);
-                            System.out.println("Student enrolled successfully!");
+                            boolean ok = service.enrollStudent(studentId, courseId);
+                            if (ok) System.out.println("Student enrolled successfully!");
                         }
                         break;
                     default:
@@ -159,8 +159,8 @@ public class Main {
                         String dept = scanner.nextLine().trim().toUpperCase();
                         System.out.print("Enter Subject: ");
                         String subject = scanner.nextLine().trim();
-                        service.addTeacher(id, name, Department.valueOf(dept), subject);
-                        System.out.println("Teacher added successfully!");
+                        boolean tAdded = service.addTeacher(id, name, Department.valueOf(dept), subject);
+                        if (tAdded) System.out.println("Teacher added successfully!");
                         break;
                     case 2:
                         System.out.print("Enter Teacher ID: ");
@@ -170,8 +170,8 @@ public class Main {
                         System.out.print("\nEnter Course ID (or 0 to cancel): ");
                         String courseId = scanner.nextLine().trim();
                         if (!courseId.equals("0")) {
-                            service.assignTeacher(teacherId, courseId);
-                            System.out.println("Teacher assigned successfully!");
+                            boolean assigned = service.assignTeacher(teacherId, courseId);
+                            if (assigned) System.out.println("Teacher assigned successfully!");
                         }
                         break;
                     default:
@@ -212,8 +212,8 @@ public class Main {
                         String name = scanner.nextLine().trim();
                         System.out.print("Enter Department Code (from list above): ");
                         String dept = scanner.nextLine().trim().toUpperCase();
-                        service.addCourse(id, name, Department.valueOf(dept));
-                        System.out.println("Course added successfully!");
+                        boolean cAdded = service.addCourse(id, name, Department.valueOf(dept));
+                        if (cAdded) System.out.println("Course added successfully!");
                         break;
                     case 2:
                         service.listCourses();

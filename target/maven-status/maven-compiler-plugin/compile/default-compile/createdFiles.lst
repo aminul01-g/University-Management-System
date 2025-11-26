@@ -1,0 +1,11 @@
+courses/Department.class
+utilities/DatabaseService.class
+people/Teacher.class
+utilities/DatabaseService$PersistenceMode.class
+people/Student.class
+interfaces/Printable.class
+utilities/DataModel.class
+utilities/UniversityService.class
+people/Person.class
+courses/Course.class
+main/Main.class
